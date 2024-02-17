@@ -1,0 +1,72 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.18;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+
+contract Token is ERC20, Ownable, ERC20Burnable {
+    event RiderRewarded(address indexed rider, uint256 rewardAmount);
+    event ItemRedeemed(address indexed rider, string item, uint256 cost);
+    event RiderBalanceChecked(address indexed rider, uint256 balance);
+    event DonationReceived(address indexed donor, uint256 totalTokens);
+
+    enum MotorcycleModel {
+        R15,
+        DUKE_390,
+        GT_650,
+        CLASSIC_350
+    }
+
+    constructor(uint256 initialSupply, address initialOwner) ERC20("degen token", "DGN") Ownable(initialOwner) {
+        _mint(initialOwner, initialSupply);
+    }
+
+    function mint(address to, uint256 totalTokens) external onlyOwner {
+        _mint(to, totalTokens);
+    }
+
+    function burn(uint256 totalTokens) public override {
+        _burn(msg.sender, totalTokens);
+    }
+
+    function transferTokens(address to, uint256 totalTokens) external {
+        _transfer(msg.sender, to, totalTokens);
+    }
+
+    function redeemMotorcycle(MotorcycleModel model) external {
+        require(balanceOf(msg.sender) >= 1, "Not enough funds!");
+
+        uint256 tokensToBurn;
+        string memory redeemedModel;
+
+        if (model == MotorcycleModel.R15) {
+            tokensToBurn = 800;
+            redeemedModel = "R15";
+        } else if (model == MotorcycleModel.DUKE_390) {
+            tokensToBurn = 1000;
+            redeemedModel = "DUKE 390";
+        } else if (model == MotorcycleModel.GT_650) {
+            tokensToBurn = 1500;
+            redeemedModel = "GT 650";
+        } else if (model == MotorcycleModel.CLASSIC_350) {
+            tokensToBurn = 1200; 
+            redeemedModel = "Classic 350";
+        } else {
+            revert("Invalid motorcycle model");
+        }
+
+        require(balanceOf(msg.sender) >= tokensToBurn, "Not enough funds");
+        _burn(msg.sender, tokensToBurn);
+        emit ItemRedeemed(msg.sender, redeemedModel, tokensToBurn);
+    }
+
+    function checkBalance(address rider) external view returns (uint256) {
+        return balanceOf(rider);
+    }
+
+    function receiveDonation() external payable {
+        require(msg.value > 0, "Invalid donation amount");
+        emit DonationReceived(msg.sender, msg.value);
+    }
+}
